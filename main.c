@@ -80,7 +80,6 @@ void bicubic_sample(BMP* original_bitmap, float u, float v,
 	
 	//printf("x: %f, xint: %d, y: %f, yint: %d\n", x, xint, y, yint);
 
-	// r
 	unsigned char p00[3]; 
 	unsigned char p10[3];
 	unsigned char p20[3];
@@ -123,6 +122,7 @@ void bicubic_sample(BMP* original_bitmap, float u, float v,
 	
 	unsigned char dest_pixel[3];
 	int channel;
+#pragma simd
 	for (channel = 0; channel < 3 /*RGB*/; channel++) {
 		float col0 = cubic_hermite(p00[channel], p10[channel], p20[channel], p30[channel], xfract);
 		float col1 = cubic_hermite(p01[channel], p11[channel], p21[channel], p31[channel], xfract);
@@ -145,10 +145,10 @@ void resize_image(BMP* original_bitmap, int factor, BMP* result_bitmap) {
 	int desired_height = original_height * factor;
 	int desired_width = original_width * factor;
 
-	int y, x;
-#pragma omp parallel for private(x)
+	int y;
 	for (y = 0; y < desired_height; y++) {
 		float v = (float)y / (float)(desired_height - 1);
+		int x;
 		for (x = 0; x < desired_width; x++) {
 			float u = (float)x / (float)(desired_width - 1);
 			
