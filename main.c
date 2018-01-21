@@ -122,6 +122,7 @@ void bicubic_sample(BMP* original_bitmap, float u, float v,
 	
 	unsigned char dest_pixel[3];
 	int channel;
+#pragma simd
 	for (channel = 0; channel < 3 /*RGB*/; channel++) {
 		float col0 = cubic_hermite(p00[channel], p10[channel], p20[channel], p30[channel], xfract);
 		float col1 = cubic_hermite(p01[channel], p11[channel], p21[channel], p31[channel], xfract);
