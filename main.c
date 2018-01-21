@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -40,6 +41,124 @@ void resize_nearest_neighbour(unsigned char *original_data, int x,
 	}
 }
 
+// cubic
+double cubic_interpolate (double p0, double p1, double p2, double p3, double x) {
+	return p1 + 0.5 * x*(p2 - p0 + x*(2.0*p0 - 5.0*p1 + 4.0*p2 - p3 + x*(3.0*(p1 - p2) + p3 - p0)));
+}
+ 
+void double_image_size_cubic(unsigned char *original_data,
+		int x, int y, int n, unsigned char *result_data) {
+	int factor = 2;
+	int i, j, k;
+	for (i = 2; i < y-2; i++) {
+		for (j = 2; j < x-2; j++) {
+			for (k = 0; k < n; k++) {
+				
+				*(result_data + (i*x*n*factor) + (factor*j*n) + k) =
+						*(original_data + (i*x*n) + (j*n) + k);
+				unsigned char p0 = *(original_data + (i*x*n) + ((j-2)*n) + k);
+				unsigned char p1 = *(original_data + (i*x*n) + ((j-1)*n) + k);
+				unsigned char p2 = *(original_data + (i*x*n) + ((j+1)*n) + k);
+				unsigned char p3 = *(original_data + (i*x*n) + ((j+2)*n) + k);
+				unsigned char interpolated_val = cubic_interpolate(p0, p1, p2, p3, 0.1);
+				
+				*(result_data + (i*x*n*factor) + (factor*j*n) + n + k) = cubic_interpolate(p0, p1, p2, p3, 0.5);
+				//*(result_data + (i*x*n*factor) + (factor*j*n) + n + k) = *(original_data + (i*x*n) + (j*n) + k);
+				
+			}
+		}
+	}
+}
+
+unsigned char* get_pixel(unsigned char* data, int height, int width,
+		int channels, int x, int y) {
+	if (x < 0) x = 0;
+	if (x >= width) x = width - 1;
+	
+	if (y < 0) y = 0;
+	if (y >= height) y = height - 1;
+	
+	return data + (y*width*channels) + (x*channels);
+}
+
+float cubic_hermite(float A, float B, float C, float D, float t)
+{
+    float a = -A / 2.0f + (3.0f*B) / 2.0f - (3.0f*C) / 2.0f + D / 2.0f;
+    float b = A - (5.0f*B) / 2.0f + 2.0f*C - D / 2.0f;
+    float c = -A / 2.0f + C / 2.0f;
+    float d = B;
+ 
+    return a*t*t*t + b*t*t + c*t + d;
+}
+
+void bicubic_sample(unsigned char* data, int height, int width,
+		int channels, unsigned char* dest_pixel, float u, float v) {
+	float x = (u * width) - 0.5; if (x<0) x = 0;
+	int xint = (int)x;
+	float xfract = x - floor(x);
+	
+	float y = (v * height) - 0.5; if (y<0) y = 0;
+	int yint = (int)y;
+	float yfract = y - floor(y);
+	
+	printf("x: %f, xint: %d, y: %f, yint: %d\n", x, xint, y, yint);
+	
+	unsigned char* p00 = get_pixel(data, height, width, channels, xint - 1, yint - 1);
+	unsigned char* p10 = get_pixel(data, height, width, channels, xint + 0, yint - 1);
+	unsigned char* p20 = get_pixel(data, height, width, channels, xint + 1, yint - 1);
+	unsigned char* p30 = get_pixel(data, height, width, channels, xint + 2, yint - 1);
+	
+	unsigned char* p01 = get_pixel(data, height, width, channels, xint - 1, yint + 0);
+	unsigned char* p11 = get_pixel(data, height, width, channels, xint + 0, yint + 0);
+	unsigned char* p21 = get_pixel(data, height, width, channels, xint + 1, yint + 0);
+	unsigned char* p31 = get_pixel(data, height, width, channels, xint + 2, yint + 0);
+	
+	unsigned char* p02 = get_pixel(data, height, width, channels, xint - 1, yint + 1);
+	unsigned char* p12 = get_pixel(data, height, width, channels, xint + 0, yint + 1);
+	unsigned char* p22 = get_pixel(data, height, width, channels, xint + 1, yint + 1);
+	unsigned char* p32 = get_pixel(data, height, width, channels, xint + 2, yint + 1);
+	
+	unsigned char* p03 = get_pixel(data, height, width, channels, xint - 1, yint + 2);
+	unsigned char* p13 = get_pixel(data, height, width, channels, xint + 0, yint + 2);
+	unsigned char* p23 = get_pixel(data, height, width, channels, xint + 1, yint + 2);
+	unsigned char* p33 = get_pixel(data, height, width, channels, xint + 2, yint + 2);
+	
+	int channel;
+	for (channel = 0; channel < channels; channel++) {
+		float col0 = cubic_hermite(p00[channel], p10[channel], p20[channel], p30[channel], xfract);
+		float col1 = cubic_hermite(p01[channel], p11[channel], p21[channel], p31[channel], xfract);
+		float col2 = cubic_hermite(p02[channel], p12[channel], p22[channel], p32[channel], xfract);
+		float col3 = cubic_hermite(p03[channel], p13[channel], p23[channel], p33[channel], xfract);
+		float value = cubic_hermite(col0, col1, col2, col3, yfract);
+		if (value > 255.0f) value = 255.0f;
+		if (value < 0.0f) value = 0.0f;
+		dest_pixel[channel] = (unsigned char)value;
+	}
+}
+
+void resize_image(unsigned char* original_data,
+		int original_width, int original_height,
+		int channels, int factor, unsigned char *result_data) {
+	
+	int desired_height = original_height * factor;
+	int desired_width = original_width * factor;
+	
+	unsigned char *dest_pixel = result_data;
+	int y, x;
+	for (y = 0; y < desired_height; y++) {
+		float v = (float)y / (float)(desired_height - 1);
+		for (x = 0; x < desired_width; x++) {
+			float u = (float)x / (float)(desired_width - 1);
+			
+			bicubic_sample(original_data, original_height, original_width, channels,
+					dest_pixel, u, v);
+
+			dest_pixel+= channels;
+			
+		}
+	}
+}
+
 int main(int argc, char* argv[]) {
 	if (argc != 2) {
 		printf("prosze podaj skale\n");
@@ -63,12 +182,17 @@ int main(int argc, char* argv[]) {
 	
 	
 	
-	unsigned char *resized_img = malloc(x*factor*y*factor*n);
+	unsigned char *resized_img = calloc(1, x*factor*y*factor*n);
 	
-	resize_nearest_neighbour(data, x, y, n, factor, resized_img);
+	//resize_nearest_neighbour(data, x, y, n, factor, resized_img);
+	//double_image_size_cubic(data, x, y, n, resized_img);
+	
+	resize_image(data, x, y, n, factor, resized_img);
 	
 	stbi_write_bmp("mario1-output.bmp", factor*x, factor*y, n, resized_img);
 	
+	free(resized_img);
 	stbi_image_free(data);
+	
 	return 0;
 }
