@@ -1,1 +1,1 @@
-gcc main.c -lm -fopenmp
+gcc main.c qdbmp.c -lm -fopenmp

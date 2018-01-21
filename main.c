@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "qdbmp.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -149,6 +151,13 @@ int main(int argc, char* argv[]) {
 	printf("Szerokosc: %d, wysokosc: %d, liczba kanalow: %d\n", x, y, n);
 	//print_image(data, x, y, n);
 
+	BMP* bmp;
+	
+	bmp = BMP_ReadFile(FILE_NAME);
+	 /* If an error has occurred, notify and exit */
+	BMP_CHECK_ERROR( stderr, -1 );
+	
+	
 	unsigned char *resized_img = calloc(1, x*factor*y*factor*n);
 	
 	//resize_nearest_neighbour(data, x, y, n, factor, resized_img);
