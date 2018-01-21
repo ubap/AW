@@ -9,7 +9,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#define FILE_NAME "mario1.gif"
+#define FILE_NAME "mario.bmp"
 
 void print_image(unsigned char *data, int x, int y, int n) {
 	int i, j, k;
@@ -156,6 +156,14 @@ int main(int argc, char* argv[]) {
 	bmp = BMP_ReadFile(FILE_NAME);
 	 /* If an error has occurred, notify and exit */
 	BMP_CHECK_ERROR( stderr, -1 );
+	
+	int width = BMP_GetWidth( bmp );
+	int height = BMP_GetHeight( bmp );
+	int depth = BMP_GetDepth(bmp);
+	
+	BMP* resized_img2 = BMP_Create( width, height, depth );
+	BMP_WriteFile( resized_img2, "mario-2-qdbmp.bmp" );
+	BMP_CHECK_ERROR( stderr, -2 );
 	
 	
 	unsigned char *resized_img = calloc(1, x*factor*y*factor*n);
