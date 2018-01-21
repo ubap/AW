@@ -41,35 +41,6 @@ void resize_nearest_neighbour(unsigned char *original_data, int x,
 	}
 }
 
-// cubic
-double cubic_interpolate (double p0, double p1, double p2, double p3, double x) {
-	return p1 + 0.5 * x*(p2 - p0 + x*(2.0*p0 - 5.0*p1 + 4.0*p2 - p3 + x*(3.0*(p1 - p2) + p3 - p0)));
-}
- 
-void double_image_size_cubic(unsigned char *original_data,
-		int x, int y, int n, unsigned char *result_data) {
-	int factor = 2;
-	int i, j, k;
-	for (i = 2; i < y-2; i++) {
-		for (j = 2; j < x-2; j++) {
-			for (k = 0; k < n; k++) {
-				
-				*(result_data + (i*x*n*factor) + (factor*j*n) + k) =
-						*(original_data + (i*x*n) + (j*n) + k);
-				unsigned char p0 = *(original_data + (i*x*n) + ((j-2)*n) + k);
-				unsigned char p1 = *(original_data + (i*x*n) + ((j-1)*n) + k);
-				unsigned char p2 = *(original_data + (i*x*n) + ((j+1)*n) + k);
-				unsigned char p3 = *(original_data + (i*x*n) + ((j+2)*n) + k);
-				unsigned char interpolated_val = cubic_interpolate(p0, p1, p2, p3, 0.1);
-				
-				*(result_data + (i*x*n*factor) + (factor*j*n) + n + k) = cubic_interpolate(p0, p1, p2, p3, 0.5);
-				//*(result_data + (i*x*n*factor) + (factor*j*n) + n + k) = *(original_data + (i*x*n) + (j*n) + k);
-				
-			}
-		}
-	}
-}
-
 unsigned char* get_pixel(unsigned char* data, int height, int width,
 		int channels, int x, int y) {
 	if (x < 0) x = 0;
@@ -179,13 +150,10 @@ int main(int argc, char* argv[]) {
 	}
 	printf("Szerokosc: %d, wysokosc: %d, liczba kanalow: %d\n", x, y, n);
 	print_image(data, x, y, n);
-	
-	
-	
+
 	unsigned char *resized_img = calloc(1, x*factor*y*factor*n);
 	
 	//resize_nearest_neighbour(data, x, y, n, factor, resized_img);
-	//double_image_size_cubic(data, x, y, n, resized_img);
 	
 	resize_image(data, x, y, n, factor, resized_img);
 	
