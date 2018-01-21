@@ -1,1 +1,1 @@
-gcc main.c -lm
+gcc main.c -lm -fopenmp

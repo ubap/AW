@@ -72,7 +72,7 @@ void bicubic_sample(unsigned char* data, int height, int width,
 	int yint = (int)y;
 	float yfract = y - floor(y);
 	
-	printf("x: %f, xint: %d, y: %f, yint: %d\n", x, xint, y, yint);
+	//printf("x: %f, xint: %d, y: %f, yint: %d\n", x, xint, y, yint);
 	
 	unsigned char* p00 = get_pixel(data, height, width, channels, xint - 1, yint - 1);
 	unsigned char* p10 = get_pixel(data, height, width, channels, xint + 0, yint - 1);
@@ -113,19 +113,17 @@ void resize_image(unsigned char* original_data,
 	
 	int desired_height = original_height * factor;
 	int desired_width = original_width * factor;
-	
-	unsigned char *dest_pixel = result_data;
+
 	int y, x;
+#pragma omp parallel for private(x)
 	for (y = 0; y < desired_height; y++) {
 		float v = (float)y / (float)(desired_height - 1);
 		for (x = 0; x < desired_width; x++) {
 			float u = (float)x / (float)(desired_width - 1);
+			unsigned char *dest_pixel = result_data + y*desired_width*channels + x*channels;
 			
 			bicubic_sample(original_data, original_height, original_width, channels,
 					dest_pixel, u, v);
-
-			dest_pixel+= channels;
-			
 		}
 	}
 }
@@ -149,14 +147,14 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	printf("Szerokosc: %d, wysokosc: %d, liczba kanalow: %d\n", x, y, n);
-	print_image(data, x, y, n);
+	//print_image(data, x, y, n);
 
 	unsigned char *resized_img = calloc(1, x*factor*y*factor*n);
 	
 	//resize_nearest_neighbour(data, x, y, n, factor, resized_img);
 	
 	resize_image(data, x, y, n, factor, resized_img);
-	
+
 	stbi_write_bmp("mario1-output.bmp", factor*x, factor*y, n, resized_img);
 	
 	free(resized_img);
