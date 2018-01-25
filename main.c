@@ -145,11 +145,10 @@ void resize_image(BMP* original_bitmap, int factor, BMP* result_bitmap) {
 	int desired_width = original_width * factor;
 	{
 		int y;
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
 		for (y = 0; y < desired_height; y++) {
 			float v = (float)y / (float)(desired_height - 1);
 			int x;
-#pragma simd collapse(2)
 			for (x = 0; x < desired_width; x++) {
 				float u = (float)x / (float)(desired_width - 1);
 				
