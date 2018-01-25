@@ -4,9 +4,6 @@
 
 #include "qdbmp.h"
 
-
-#define FILE_NAME "mario.bmp"
-
 void print_image(BMP* bmp, int x, int y) {
 	int i, j, k;
 	for (i = 0; i < y; i++) {
@@ -164,17 +161,18 @@ void resize_image(BMP* original_bitmap, int factor, BMP* result_bitmap) {
 }
 
 int main(int argc, char* argv[]) {
-	if (argc != 2) {
-		printf("prosze podaj skale\n");
+	if (argc != 3) {
+		printf("uzycie : nazwa, skala\n");
 		return 4;
 	}
-	int factor = strtol(argv[1], NULL, 0);
+	char* file_name = argv[1];
+	int factor = strtol(argv[2], NULL, 0);
 	if (factor == 0) {
 		printf("podaj prawidlowa skale\n");
 		return 5;
 	}
 
-	BMP* bmp = BMP_ReadFile(FILE_NAME);
+	BMP* bmp = BMP_ReadFile(file_name);
 	 /* If an error has occurred, notify and exit */
 	BMP_CHECK_ERROR( stderr, -1 );
 	
@@ -188,7 +186,7 @@ int main(int argc, char* argv[]) {
 	BMP* resized_img2 = BMP_Create( width*factor, height*factor, 32 );
 	resize_image(bmp, factor, resized_img2);
 	
-	BMP_WriteFile( resized_img2, "output-mario.bmp" );
+	BMP_WriteFile( resized_img2, "output-file.bmp" );
 	BMP_CHECK_ERROR( stderr, -2 );
 	
 	BMP_Free(bmp);
